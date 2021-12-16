@@ -34,7 +34,7 @@ def start():
        idprimary=project["id"]
        return idprimary
     else:
-       print("Erreur soumission job", response.json(), response.status_code)
+       print("Error soumission job", response.json(), response.status_code)
 
 def is_not_running(id):
   url = "https://gra.training.ai.cloud.ovh.net/v1/job/"+id
@@ -44,7 +44,7 @@ def is_not_running(id):
      status=project["status"]["state"]
      return status == "RUNNING"
   else:
-     print("Erreur get job", response.json(), response.status_code)
+     print("Error get job", response.json(), response.status_code)
      return False
   return False
 
@@ -66,7 +66,7 @@ def send_command_container(id, command):
      resp = response.json()
      return resp["status"]["ip"]
   else:
-     print("Erreur get job", response.json(), response.status_code)
+     print("Error get job", response.json(), response.status_code)
      return "0"
   return "0"
 
@@ -77,7 +77,7 @@ def stop(id):
      resp = response.json()
      print("Killed: ", resp["id"])
   else:
-     print("Erreur kill job", response.json(), response.status_code)
+     print("Error kill job", response.json(), response.status_code)
 
 
 primaryid=start()
@@ -88,5 +88,5 @@ while not (is_not_running(primaryid)):
 primaryip=get_private_ip(primaryid)
 
 print("Primary private ip", primaryip)
-primarynode="python -m torch.distributed.launch --nproc_per_node=2 --nnodes=2 --node_rank=0 --master_addr "+primaryip+" --master_port 5555 experiment.py hyperparams.yaml --distributed_launch --distributed_backend='nccl'"
+primarynode=f"python -m torch.distributed.launch --nproc_per_node=2 --nnodes=2 --node_rank=0 --master_addr {primaryip} --master_port 5555 experiment.py hyperparams.yaml --distributed_launch --distributed_backend='nccl'"
 stop(primaryid)
