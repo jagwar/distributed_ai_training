@@ -18,7 +18,7 @@ class BearerAuth(requests.auth.AuthBase):
         return r
 
     
-def get_job(id=None) -> Any:
+def get_job(id=None) -> bool:
     response = requests.get(f"{url}/{id}", auth=BearerAuth(token))
     if response.status_code == 200:
         return response.json()
@@ -27,7 +27,7 @@ def get_job(id=None) -> Any:
         return False
     
     
-def start_primary_node() -> Any:
+def start_primary_node() -> str:
     createjob = { "image": "ovhcom/ai-training-pytorch" }
     datain = '''{
       "image": "ovhcom/ai-training-pytorch",
@@ -49,20 +49,20 @@ def start_primary_node() -> Any:
        print("Error soumission job", response.json(), response.status_code)
 
     
-def is_not_running(id) -> Any:
-  if not get_job(id):
-       return False
-  else:
-       return get_job(id)["status"]["state"] == 'RUNNING'
+def is_not_running(id) -> bool:
+    if not get_job(id):
+        return False
+    else:
+        return get_job(id)["status"]["state"] == 'RUNNING'
 
     
-def get_private_ip(id) -> string:
- if not get_job(id):
-       return "0"
-  else:
-       return get_job(id)["status"]["ip"]
+def get_private_ip(id) -> str:
+    if not get_job(id):
+        return "0"
+    else:
+        return get_job(id)["status"]["ip"]
     
-def send_command_container(id, command) -> Any:
+def send_command_container(id, command) -> str:
   this_url = f"{url}/{id}/exec?command={command}&stderr=true&stdout=true&stdin=false&tty=false"
   response = requests.get(this_url, auth=BearerAuth(token))
 
@@ -72,16 +72,16 @@ def send_command_container(id, command) -> Any:
      print("Error running command in container", response.json(), response.status_code)
      return False
 
-def stop(id):
+def stop_job(id):
+  print("id to kill: "+id)
   this_url = f"{url}/{id}/kill"
-  response = requests.put(url, auth=BearerAuth(token))
+  response = requests.put(this_url, auth=BearerAuth(token))
   if response.status_code == 200:
      resp = response.json()
      print("Killed: ", resp["id"])
   else:
      print("Error killing job", response.json(), response.status_code)
 
-        
         
 primaryid=start_primary_node()
 print("Primary Node starting")
@@ -92,8 +92,10 @@ while not (is_not_running(primaryid)):
 primaryip=get_private_ip(primaryid)
 
 print(f"Primary private ip: {primaryip}")
+print(f"Primary private id: {primaryid}")
 primarynode_cmd=f"python -m torch.distributed.launch --nproc_per_node=2 --nnodes=2 --node_rank=0 --master_addr {primaryip} --master_port 5555 experiment.py hyperparams.yaml --distributed_launch --distributed_backend='nccl'"
 
-cmd_output = send_command_container(primaryid, primarynode_cmd)
-print(cmd_output)
-stop_container(primaryid)
+#cmd_output = send_command_container(primaryid, primarynode_cmd)
+#print(cmd_output)
+stop(primaryid)
+stop_job(primaryid)
